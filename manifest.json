@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Memos Quick Save",
+  "version": "1.0",
+  "description": "快速保存网页内容到Memos的Chrome扩展",
+  "permissions": ["sidePanel", "activeTab", "storage", "tabs"],
+  "action": {
+    "default_title": "打开Memos Quick Save"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

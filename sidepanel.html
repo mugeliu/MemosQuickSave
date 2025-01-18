@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Memos Quick Save</title>
+    <link href="styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="config-panel" style="display: none">
+      <h2>配置Memos</h2>
+      <div class="form-group">
+        <label for="memos-url">Memos服务器地址:</label>
+        <input
+          type="url"
+          id="memos-url"
+          placeholder="https://your-memos-server.com"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label for="memos-token">API Token:</label>
+        <input type="password" id="memos-token" required />
+      </div>
+      <button id="save-config">保存配置</button>
+    </div>
+
+    <div id="main-panel">
+      <div class="header">
+        <h2>保存到Memos</h2>
+        <button id="toggle-config" class="icon-button">⚙️</button>
+      </div>
+
+      <div class="form-group">
+        <label>原文信息</label>
+        <input type="text" id="page-title" readonly />
+        <input type="text" id="page-url" readonly />
+      </div>
+
+      <div class="form-group">
+        <label for="summary">原文摘要</label>
+        <textarea
+          id="summary"
+          placeholder="在此输入原文摘要..."
+          rows="4"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="thoughts">个人感想</label>
+        <textarea
+          id="thoughts"
+          placeholder="在此输入个人感想..."
+          rows="4"
+        ></textarea>
+      </div>
+
+      <button id="submit-button">提交到Memos</button>
+    </div>
+
+    <div id="toast" class="toast" style="display: none"></div>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
