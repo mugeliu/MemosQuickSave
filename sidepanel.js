@@ -1,305 +1,302 @@
+import {
+  formatSelectedText,
+  formatPageInfo,
+  showNotification,
+  sendToMemos,
+} from "./utils.js";
+import {
+  loadConfig,
+  saveConfig,
+  validateConfig,
+  needsConfiguration,
+} from "./config.js";
+
 // DOM 元素
-const configPanel = document.getElementById("config-panel");
-const mainPanel = document.getElementById("main-panel");
-const toggleConfigBtn = document.getElementById("toggle-config");
-const saveConfigBtn = document.getElementById("save-config");
-const submitButton = document.getElementById("submit-button");
-const toast = document.getElementById("toast");
+const elements = {
+  configSection: document.getElementById("configSection"),
+  contentSection: document.getElementById("contentSection"),
+  memosHost: document.getElementById("memosHost"),
+  memosToken: document.getElementById("memosToken"),
+  glmApiKey: document.getElementById("glmApiKey"),
+  saveConfig: document.getElementById("saveConfig"),
+  titleElem: document.getElementById("titleElem"),
+  urlElem: document.getElementById("urlElem"),
+  refreshInfo: document.getElementById("refreshInfo"),
+  copyUrl: document.getElementById("copyUrl"),
+  summaryInput: document.getElementById("summaryInput"),
+  aiSummary: document.getElementById("aiSummary"),
+  thoughtInput: document.getElementById("thoughtInput"),
+  visibilityToggle: document.getElementById("visibilityToggle"),
+  submitMemo: document.getElementById("submitMemo"),
+  loadingOverlay: document.getElementById("loadingOverlay"),
+};
 
-// 输入元素
-const memosUrlInput = document.getElementById("memos-url");
-const memosTokenInput = document.getElementById("memos-token");
-const pageTitleInput = document.getElementById("page-title");
-const pageUrlInput = document.getElementById("page-url");
-const summaryInput = document.getElementById("summary");
-const thoughtsInput = document.getElementById("thoughts");
+// 当前页面信息
+let currentPageInfo = {
+  title: "",
+  url: "",
+};
 
-// 验证URL格式
-function isValidUrl(string) {
-  try {
-    new URL(string);
-    return true;
-  } catch (_) {
-    return false;
-  }
+// 显示加载动画
+function showLoading(text = "正在处理...") {
+  elements.loadingOverlay.querySelector(".loading-text").textContent = text;
+  elements.loadingOverlay.classList.remove("hidden");
 }
 
-// 验证输入
-function validateInputs() {
-  if (!summaryInput.value.trim()) {
-    showToast("请输入原文摘要", true);
-    return false;
-  }
-  if (!thoughtsInput.value.trim()) {
-    showToast("请输入个人感想", true);
-    return false;
-  }
-  return true;
+// 隐藏加载动画
+function hideLoading() {
+  elements.loadingOverlay.classList.add("hidden");
 }
 
-// 显示提示消息
-function showToast(message, isError = false) {
-  console.log(`[${isError ? "ERROR" : "INFO"}] ${message}`);
-  toast.textContent = message;
-  toast.style.backgroundColor = isError ? "#dc3545" : "#28a745";
-  toast.style.display = "block";
-  setTimeout(() => {
-    toast.style.display = "none";
-  }, 3000);
-}
-
-// 检查配置
-async function checkConfig() {
-  try {
-    const config = await chrome.storage.local.get(["memosUrl", "memosToken"]);
-    if (!config.memosUrl || !config.memosToken) {
-      mainPanel.style.display = "none";
-      configPanel.style.display = "block";
-      return false;
-    }
-    if (!isValidUrl(config.memosUrl)) {
-      showToast("Memos服务器地址格式不正确", true);
-      return false;
-    }
-    return true;
-  } catch (error) {
-    showToast("读取配置失败：" + error.message, true);
-    return false;
-  }
-}
-
-// 验证并格式化URL
-function formatApiUrl(url) {
-  // 移除URL末尾的斜杠
-  url = url.trim().replace(/\/*$/, "");
-
-  // 确保URL以http或https开头
-  if (!/^https?:\/\//i.test(url)) {
-    url = "https://" + url;
-  }
-
-  return url;
-}
-
-// 保存配置
-async function saveConfig() {
-  let url = memosUrlInput.value.trim();
-  const token = memosTokenInput.value.trim();
-
-  console.log("开始保存配置...");
-  console.log("服务器地址:", url);
-  console.log("Token长度:", token.length);
-
-  if (!url || !token) {
-    showToast("请填写所有配置项", true);
-    return;
-  }
-
-  try {
-    url = formatApiUrl(url);
-    console.log("格式化后的URL:", url);
-
-    if (!isValidUrl(url)) {
-      showToast("请输入有效的Memos服务器地址", true);
-      return;
-    }
-
-    console.log("开始验证API Token...");
-    // 使用auth/status接口验证Token
-    const testResponse = await fetch(`${url}/api/v1/auth/status`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    console.log("API验证状态码:", testResponse.status);
-    const responseData = await testResponse.json();
-    console.log("API验证响应:", responseData);
-
-    // 检查响应中是否包含用户信息
-    if (!responseData.id || !responseData.role) {
-      throw new Error("API Token无效或服务器地址不正确");
-    }
-
-    // 验证成功，保存配置
-    await chrome.storage.local.set({
-      memosUrl: url,
-      memosToken: token,
-    });
-    console.log("配置保存成功");
-    showToast("配置保存成功");
-    configPanel.style.display = "none";
-    mainPanel.style.display = "block";
-    loadPageInfo();
-  } catch (error) {
-    console.error("配置保存错误:", error);
-    console.error("错误详情:", {
-      message: error.message,
-      stack: error.stack,
-    });
-    showToast("配置保存失败：" + error.message, true);
-  }
-}
-
-// 加载配置
-async function loadConfig() {
-  const config = await chrome.storage.local.get(["memosUrl", "memosToken"]);
-  if (config.memosUrl) memosUrlInput.value = config.memosUrl;
-  if (config.memosToken) memosTokenInput.value = config.memosToken;
-}
-
-// 加载页面信息
-async function loadPageInfo() {
+// 获取当前标签页信息
+async function getCurrentTab() {
   try {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
     if (tab) {
-      pageTitleInput.value = tab.title || "";
-      pageUrlInput.value = tab.url || "";
+      updatePageInfo(tab.title, tab.url);
     }
   } catch (error) {
-    showToast("获取页面信息失败", true);
+    console.error("获取页面信息失败:", error);
+    showNotification("获取页面信息失败", "请刷新页面重试");
   }
+}
+
+// 初始化配置界面
+async function initializeConfig() {
+  const config = await loadConfig();
+  elements.memosHost.value = config.memosHost || "";
+  elements.memosToken.value = config.memosToken || "";
+  elements.glmApiKey.value = config.glmApiKey || "";
+}
+
+// 保存配置
+async function handleSaveConfig() {
+  showLoading();
+  try {
+    const config = {
+      memosHost: elements.memosHost.value.trim(),
+      memosToken: elements.memosToken.value.trim(),
+      glmApiKey: elements.glmApiKey.value.trim(),
+    };
+
+    if (!validateConfig(config)) {
+      throw new Error("请填写必要的配置信息");
+    }
+
+    await saveConfig(config);
+    showNotification("配置成功", "配置信息已保存");
+    await checkConfiguration();
+  } catch (error) {
+    showNotification("配置失败", error.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// 检查配置状态
+async function checkConfiguration() {
+  const needsConfig = await needsConfiguration();
+  elements.configSection.style.display = needsConfig ? "block" : "none";
+  elements.contentSection.style.display = needsConfig ? "none" : "block";
+
+  if (!needsConfig) {
+    await getCurrentTab();
+  }
+}
+
+// 更新页面信息显示
+function updatePageInfo(title, url) {
+  currentPageInfo = { title, url };
+  elements.titleElem.textContent = title;
+  elements.titleElem.title = title;
+  elements.urlElem.textContent = new URL(url).hostname;
+  elements.urlElem.title = url;
+}
+
+// 复制链接
+async function handleCopyUrl() {
+  try {
+    await navigator.clipboard.writeText(currentPageInfo.url);
+    elements.copyUrl.title = "已复制";
+    setTimeout(() => {
+      elements.copyUrl.title = "复制链接";
+    }, 2000);
+  } catch (error) {
+    console.error("复制失败:", error);
+  }
+}
+
+// 调用智谱API进行总结
+async function callGlmApi(title, url) {
+  const config = await loadConfig();
+  if (!config.glmApiKey) {
+    throw new Error("请先配置智谱 API Key");
+  }
+
+  const systemPrompt = `你是一个专业的文章分析助手。我会给你一篇文章的标题和链接，请你：
+1. 基于标题和链接，分析文章的主题和背景
+2. 推测文章可能包含的关键信息点
+3. 给出建议的阅读角度
+
+输出格式：
+### 📌 主题分析
+[分析文章的主题和背景，100字以内]
+
+### 💡 可能的关键点
+- 点1
+- 点2
+- 点3
+
+### 👀 阅读建议
+[给出阅读这篇文章的建议角度，50字以内]`;
+
+  const response = await fetch(
+    "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.glmApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "glm-4-flash",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: `请分析这篇文章：\n\n标题：${title}\n链接：${url}`,
+          },
+        ],
+        temperature: 0.7,
+        top_p: 0.7,
+        max_tokens: 1000,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      `AI 分析请求失败: ${errorData.error?.message || response.statusText}`
+    );
+  }
+
+  const result = await response.json();
+  return result.choices[0].message.content;
+}
+
+// 处理AI总结
+async function handleAiSummary() {
+  if (!currentPageInfo.title || !currentPageInfo.url) {
+    showNotification("无法分析", "请确保已获取到页面信息");
+    return;
+  }
+
+  showLoading("AI 正在分析...");
+  try {
+    const analysis = await callGlmApi(
+      currentPageInfo.title,
+      currentPageInfo.url
+    );
+    elements.summaryInput.value = analysis;
+    showNotification("AI 分析完成", "已生成内容分析");
+  } catch (error) {
+    console.error("AI 分析失败:", error);
+    showNotification("AI 分析失败", error.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// 更新可见性状态显示
+function updateVisibilityLabel() {
+  const toggleLabel = elements.visibilityToggle.nextElementSibling;
+  toggleLabel.textContent = elements.visibilityToggle.checked ? "公开" : "私密";
 }
 
 // 提交到Memos
-async function submitToMemos() {
-  console.log("开始提交内容到Memos...");
-
-  if (!(await checkConfig())) {
-    console.log("配置检查未通过");
-    return;
-  }
-  if (!validateInputs()) {
-    console.log("输入验证未通过");
-    return;
-  }
-
-  const config = await chrome.storage.local.get(["memosUrl", "memosToken"]);
-  console.log("使用的服务器地址:", config.memosUrl);
-
-  const content = formatContent();
-  console.log("格式化后的内容:", content);
-
+async function handleSubmitMemo() {
+  showLoading();
   try {
-    submitButton.disabled = true;
-    submitButton.textContent = "保存中...";
+    const config = await loadConfig();
+    const visibility = elements.visibilityToggle.checked ? "PUBLIC" : "PRIVATE";
 
-    // 严格按照API文档的请求体格式
-    const memoData = {
-      content: content,
-      visibility: "VISIBILITY_UNSPECIFIED",
-      resources: [
-        {
-          name: "",
-          uid: "",
-          filename: "",
-          content: "",
-          externalLink: "",
-          type: "",
-          size: "",
-          memo: "",
-        },
-      ],
-      relations: [
-        {
-          memo: "",
-          relatedMemo: "",
-          type: "TYPE_UNSPECIFIED",
-        },
-      ],
-    };
+    let content = "## 📝 读书笔记\n\n";
+    content += "### 📖 原文信息\n\n";
+    content += `- 标题：${currentPageInfo.title}\n`;
+    content += `- 链接：${currentPageInfo.url}\n\n`;
 
-    console.log("准备发送的数据:", memoData);
-    console.log("发送请求到:", `${config.memosUrl}/api/v1/memos`);
-
-    const response = await fetch(`${config.memosUrl}/api/v1/memos`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.memosToken}`,
-      },
-      body: JSON.stringify(memoData),
-    });
-
-    console.log("响应状态码:", response.status);
-    const responseText = await response.text();
-    console.log("原始响应文本:", responseText);
-
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-      console.log("解析后的响应数据:", responseData);
-    } catch (e) {
-      console.error("响应解析错误:", e);
-      throw new Error("服务器响应格式错误");
+    if (elements.summaryInput.value.trim()) {
+      content += "### 💭 原文摘要\n\n";
+      content += elements.summaryInput.value.trim() + "\n\n";
     }
 
-    if (responseData.code) {
-      throw new Error(responseData.message || "保存失败");
+    if (elements.thoughtInput.value.trim()) {
+      content += "### 🤔 个人感想\n\n";
+      content += elements.thoughtInput.value.trim();
     }
 
-    showToast("保存成功");
-    clearInputs();
+    const result = await sendToMemos(
+      content,
+      visibility,
+      config.memosHost,
+      config.memosToken
+    );
+
+    // 检查返回结果中的 uid 字段
+    if (result && result.uid) {
+      showNotification("保存成功", `笔记已保存，ID: ${result.uid}`);
+      // 清空输入
+      elements.summaryInput.value = "";
+      elements.thoughtInput.value = "";
+    } else {
+      console.error("Invalid response:", result);
+      throw new Error("保存失败：服务器返回的数据格式不正确");
+    }
   } catch (error) {
-    console.error("提交失败:", error);
-    console.error("错误详情:", {
-      message: error.message,
-      stack: error.stack,
-    });
-    showToast(error.message, true);
+    console.error("保存失败:", error);
+    showNotification("保存失败", error.message);
   } finally {
-    submitButton.disabled = false;
-    submitButton.textContent = "提交到Memos";
+    hideLoading();
   }
 }
 
-// 格式化内容
-function formatContent() {
-  const title = pageTitleInput.value.trim();
-  const url = pageUrlInput.value.trim();
-  const summary = summaryInput.value.trim();
-  const thoughts = thoughtsInput.value.trim();
-
-  return `## 📝 读书笔记
-
-### 📖 原文信息
-- 标题：${title}
-- 链接：${url}
-
-### 💭 原文摘要
-${summary}
-
-### 🤔 个人感想
-${thoughts}
-
-#读书笔记`;
+// 处理来自background的消息
+function handleMessage(message) {
+  if (message.type === "setSelectedText") {
+    const { text, title, url } = message.data;
+    updatePageInfo(title, url);
+    elements.summaryInput.value = formatSelectedText(text);
+  }
 }
 
-// 清空输入
-function clearInputs() {
-  summaryInput.value = "";
-  thoughtsInput.value = "";
+// 初始化事件监听
+function initializeEventListeners() {
+  elements.saveConfig.addEventListener("click", handleSaveConfig);
+  elements.refreshInfo.addEventListener("click", getCurrentTab);
+  elements.copyUrl.addEventListener("click", handleCopyUrl);
+  elements.aiSummary.addEventListener("click", handleAiSummary);
+  elements.submitMemo.addEventListener("click", handleSubmitMemo);
+  elements.visibilityToggle.addEventListener("change", updateVisibilityLabel);
+  chrome.runtime.onMessage.addListener(handleMessage);
 }
 
-// 事件监听
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadConfig();
-  await checkConfig();
-  await loadPageInfo();
-});
+// 初始化
+async function initialize() {
+  await initializeConfig();
+  await checkConfiguration();
+  updateVisibilityLabel(); // 初始化可见性标签
+  initializeEventListeners();
+}
 
-toggleConfigBtn.addEventListener("click", () => {
-  configPanel.style.display =
-    configPanel.style.display === "none" ? "block" : "none";
-  mainPanel.style.display =
-    mainPanel.style.display === "none" ? "block" : "none";
+// 启动应用
+initialize().catch((error) => {
+  console.error("初始化失败:", error);
+  showNotification("初始化失败", error.message);
 });
-
-saveConfigBtn.addEventListener("click", saveConfig);
-submitButton.addEventListener("click", submitToMemos);

@@ -2,63 +2,116 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Memos Quick Save</title>
-    <link href="styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="config-panel" style="display: none">
-      <h2>配置Memos</h2>
-      <div class="form-group">
-        <label for="memos-url">Memos服务器地址:</label>
-        <input
-          type="url"
-          id="memos-url"
-          placeholder="https://your-memos-server.com"
-          required
-        />
-      </div>
-      <div class="form-group">
-        <label for="memos-token">API Token:</label>
-        <input type="password" id="memos-token" required />
-      </div>
-      <button id="save-config">保存配置</button>
-    </div>
-
-    <div id="main-panel">
-      <div class="header">
-        <h2>保存到Memos</h2>
-        <button id="toggle-config" class="icon-button">⚙️</button>
-      </div>
-
-      <div class="form-group">
-        <label>原文信息</label>
-        <input type="text" id="page-title" readonly />
-        <input type="text" id="page-url" readonly />
+    <div class="container">
+      <!-- 配置部分 -->
+      <div id="configSection" class="section">
+        <h2>配置</h2>
+        <div class="form-group">
+          <label for="memosHost">Memos 服务器地址</label>
+          <input
+            type="url"
+            id="memosHost"
+            placeholder="https://your-memos-server.com"
+          />
+        </div>
+        <div class="form-group">
+          <label for="memosToken">Memos API Token</label>
+          <input type="password" id="memosToken" />
+        </div>
+        <div class="form-group">
+          <label for="glmApiKey">智谱 API Key (可选)</label>
+          <input type="password" id="glmApiKey" />
+        </div>
+        <button id="saveConfig" class="btn primary">保存配置</button>
       </div>
 
-      <div class="form-group">
-        <label for="summary">原文摘要</label>
-        <textarea
-          id="summary"
-          placeholder="在此输入原文摘要..."
-          rows="4"
-        ></textarea>
+      <!-- 内容编辑部分 -->
+      <div id="contentSection" class="section">
+        <!-- 页面信息卡片 -->
+        <div class="info-card">
+          <div class="info-item">
+            <span class="label">标题</span>
+            <div class="title-container">
+              <span id="titleElem" class="value"></span>
+              <button id="refreshInfo" class="btn icon" title="刷新页面信息">
+                <svg viewBox="0 0 24 24" width="16" height="16">
+                  <path
+                    fill="currentColor"
+                    d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="label">链接</span>
+            <div class="url-container">
+              <span id="urlElem" class="value"></span>
+              <button id="copyUrl" class="btn icon" title="复制链接">
+                <svg viewBox="0 0 24 24" width="16" height="16">
+                  <path
+                    fill="currentColor"
+                    d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 内容编辑区 -->
+        <div class="form-group">
+          <label>原文摘要</label>
+          <div class="textarea-container">
+            <textarea
+              id="summaryInput"
+              rows="6"
+              placeholder="在这里输入或粘贴原文内容"
+            ></textarea>
+            <button id="aiSummary" class="btn icon" title="AI 智能总结">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>个人感想</label>
+          <textarea
+            id="thoughtInput"
+            rows="4"
+            placeholder="写下你的想法和感受"
+          ></textarea>
+        </div>
+
+        <!-- 提交区域 -->
+        <div class="submit-area">
+          <label class="visibility-toggle">
+            <input type="checkbox" id="visibilityToggle" checked />
+            <span class="toggle-label">公开</span>
+          </label>
+          <button id="submitMemo" class="btn primary">提交到 Memos</button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="thoughts">个人感想</label>
-        <textarea
-          id="thoughts"
-          placeholder="在此输入个人感想..."
-          rows="4"
-        ></textarea>
+      <!-- 加载动画 -->
+      <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">正在处理...</span>
       </div>
-
-      <button id="submit-button">提交到Memos</button>
     </div>
 
     <div id="toast" class="toast" style="display: none"></div>
 
-    <script src="sidepanel.js"></script>
+    <script type="module" src="sidepanel.js"></script>
   </body>
 </html>

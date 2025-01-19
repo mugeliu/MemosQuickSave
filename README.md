@@ -4,12 +4,28 @@
 
 ## 功能特点
 
-- 一键保存网页内容到 Memos
+- 多种保存方式
+  - 右键快速保存选中内容
+  - 侧边栏完整保存功能
 - 自动获取当前页面的标题和链接
-- 支持添加原文摘要和个人感想
+- AI 智能总结功能（基于智谱 GLM-4 flash 模型）
+  - 页面加载时自动分析总结
+  - 优雅的加载动画效果
+  - 支持手动重新生成
+- 简洁现代的用户界面
+  - 卡片式设计的页面信息展示
+  - 智能的可见性开关（默认公开）
+  - 流畅的动画效果
 - 支持 Markdown 格式
-- 简洁美观的用户界面
 - 安全的 API 认证机制
+
+### 界面特点
+
+- 清晰的标题和链接显示
+- 一键复制页面链接
+- 智能的公开/私密切换
+- 实时的操作反馈
+- 优雅的加载动画
 
 ## 安装方法
 
@@ -21,13 +37,42 @@
 
 ## 使用说明
 
+### 快速保存功能
+
+1. 在网页中选中要保存的文本
+2. 右键点击，选择"快速保存选中内容"
+3. 内容会自动保存到 Memos，并显示通知提示
+4. 保存格式：
+
+   ```markdown
+   > [选中的文本内容]
+
+   📍 来自：[页面标题](页面URL) #快速保存
+   ```
+
+### 完整保存功能
+
+1. 点击浏览器工具栏中的扩展图标
+2. 在侧边栏中编辑和预览内容
+3. 支持 AI 智能总结
+4. 可添加个人感想
+5. 可设置内容可见性
+
 ### 首次使用配置
 
-1. 点击 Chrome 工具栏中的扩展图标
+1. 点击扩展图标，打开侧边栏
 2. 在配置界面输入：
-   - Memos 服务器地址（例如：https://your-memos-server.com）
-   - API Token（在 Memos 设置中获取）
+   - Memos 服务器地址
+   - Memos API Token
+   - 智谱 API Key（可选，用于 AI 总结）
 3. 点击"保存配置"
+
+### AI 总结功能
+
+1. 在原文摘要框右侧点击"AI 总结"按钮
+2. 等待几秒钟，AI 会自动总结当前页面内容
+3. 总结完成后会自动填入原文摘要框
+4. 你可以根据需要编辑 AI 生成的总结内容
 
 ### 日常使用
 
@@ -67,10 +112,12 @@
 ## 技术栈
 
 - Chrome Extension Manifest V3
-- HTML5 & CSS3
-- Vanilla JavaScript
+- Chrome Side Panel API
+- Chrome Context Menus API
 - Chrome Storage API
-- Chrome Tabs API
+- Chrome Notifications API
+- Vanilla JavaScript
+- Modern CSS3
 
 ## 开发说明
 
@@ -79,10 +126,12 @@
 ```
 ├── manifest.json      # 扩展配置文件
 ├── background.js      # 后台服务脚本
-├── sidepanel.html     # 侧边栏界面
-├── sidepanel.js       # 侧边栏逻辑
-├── styles.css         # 样式文件
-└── icons/            # 图标文件夹
+├── utils.js          # 工具函数
+├── config.js         # 配置管理
+├── sidepanel.html    # 侧边栏界面
+├── sidepanel.js      # 侧边栏逻辑
+├── styles.css        # 样式文件
+└── icons/           # 图标文件夹
 ```
 
 ### 本地开发
