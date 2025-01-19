@@ -104,28 +104,26 @@ async function saveConfig() {
       return;
     }
 
-    console.log("开始测试API连接...");
-    // 测试API连接
-    const testResponse = await fetch(`${url}/api/v1/memos`, {
-      method: "GET",
+    console.log("开始验证API Token...");
+    // 使用auth/status接口验证Token
+    const testResponse = await fetch(`${url}/api/v1/auth/status`, {
+      method: "POST",
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
 
-    console.log("API测试状态码:", testResponse.status);
+    console.log("API验证状态码:", testResponse.status);
     const responseData = await testResponse.json();
-    console.log("API测试响应:", responseData);
+    console.log("API验证响应:", responseData);
 
-    // 检查特定的错误响应
-    if (
-      responseData.code === 3 &&
-      responseData.message.includes("unauthenticated user")
-    ) {
+    // 检查响应中是否包含用户信息
+    if (!responseData.id || !responseData.role) {
       throw new Error("API Token无效或服务器地址不正确");
     }
 
+    // 验证成功，保存配置
     await chrome.storage.local.set({
       memosUrl: url,
       memosToken: token,
